@@ -10,7 +10,7 @@ router.post('/report-incident', protect, authorize('victim'), upload.array('proo
 
 
 // Assign support type and counselor
-router.post('/assign-support', assignSupportAndCounsellor);
+router.post('/assign-support',protect, authorize('victim'), assignSupportAndCounsellor);
 
 // Fetch counselors by support type
 router.post('/fetch-counsellors', fetchCounsellorsBySupportType);

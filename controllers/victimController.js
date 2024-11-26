@@ -34,40 +34,70 @@ const assignSupportAndCounsellor = async (req, res) => {
     const { supportType } = req.body;
 
     try {
+        // Step 1: Validate the victim
         const victim = await Victim.findOne({ user: req.user.id });
-        if (!victim) return res.status(404).json({ message: 'Victim record not found' });
+        console.log('Victim:', victim);
 
+        if (!victim) {
+            console.log('Victim record not found.');
+            return res.status(404).json({ message: 'Victim record not found.' });
+        }
+
+        // Update victim's support type
         victim.supportType = supportType;
         await victim.save();
 
-        let counsellor;
-        if (supportType === 'Mental') {
-            counsellor = await Counsellor.findOne({ specialization: 'Mental' });
-        } else if (supportType === 'Physical') {
-            counsellor = await Counsellor.findOne({ specialization: 'Physical' });
-        } else if (supportType === 'Legal') {
-            counsellor = await Counsellor.findOne({ specialization: 'Legal' });
-        } else {
-            counsellor = await Counsellor.findOne(); // Assign any counsellor
+        // Step 2: Fetch the appropriate counselor based on specialization
+        const specialization = supportType || null;
+        let counsellor = null;
+
+        if (specialization) {
+            counsellor = await Counsellor.findOne({ specialization });
         }
 
-        if (counsellor) {
-            victim.assignedCounsellor = counsellor._id;
-            await victim.save();
-
-            const newCase = await Case.create({
-                victim: victim._id,
-                counsellor: counsellor._id,
-            });
-
-            res.json({ message: 'Support assigned', case: newCase });
-        } else {
-            res.status(404).json({ message: 'No counsellor available for the selected support type' });
+        // If no counselor found with specialization, fallback to any available counselor
+        if (!counsellor) {
+            console.log(`No counselor found for specialization: ${specialization}. Assigning any available counselor.`);
+            counsellor = await Counsellor.findOne();
         }
+
+        console.log('Counselor selected:', counsellor);
+
+        if (!counsellor) {
+            console.log('No counselors available in the database.');
+            return res.status(404).json({ message: 'No counselors available for assignment.' });
+        }
+
+        // Step 3: Assign the counselor to the victim
+
+        victim.assignedCounsellor = counsellor._id;
+        await victim.save();
+
+        console.log('Assigned Counselor:', victim.assignedCounsellor);
+
+
+        // Step 4: Create a new case
+        const newCase = await Case.create({
+            victim: victim._id,
+            counsellor: counsellor._id,
+            status: 'In Progress', // Add a status field for clarity
+        });
+
+        console.log('New Case Created:', newCase);
+
+        // Step 5: Return the success response
+        res.status(200).json({ 
+            message: 'Support assigned successfully.', 
+            case: newCase 
+        });
+
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        // Catch block for error handling
+        console.error('Error in assigning support:', err);
+        res.status(500).json({ message: 'Failed to assign support and counselor.', error: err.message });
     }
 };
+
 
 const fetchCounsellorsBySupportType = async (req, res) => {
     const { supportType } = req.body;

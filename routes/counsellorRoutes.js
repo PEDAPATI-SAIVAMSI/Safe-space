@@ -35,7 +35,7 @@ router.post('/fetch-counsellors', async (req, res) => {
 router.get('/cases', protect, authorize('counsellor'), getAssignedCases);
 
 // Assign Counsellor to a Victim (Admin action - optional)
-router.post('/assign/:victimId', protect, authorize('counsellor'), assignCounsellor);
+router.post('/assign-support/:victimId', protect, authorize('counsellor'), assignCounsellor);
 
 // Send Message in Case Chat
 router.post('/case/:caseId/message', protect, authorize('counsellor'), sendMessage);
